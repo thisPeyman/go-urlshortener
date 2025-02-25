@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package api;
+option go_package = "github.com/thisPeyman/go-urlshortner/api";
+
+service IDGeneratorService {
+    rpc GenerateID (GenerateIDRequest) returns (GenerateIDResponse);
+}
+
+message GenerateIDRequest {
+}
+
+message GenerateIDResponse {
+    int64 RandomID = 1;
+}
