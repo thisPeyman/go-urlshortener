@@ -1,0 +1,10 @@
+version: "2"
+sql:
+  - engine: "postgresql"
+    queries: "internal/pkg/url_shortener/repository/queries.sql"
+    schema: "schemas/url_shortener.sql"
+    gen:
+      go:
+        package: "repository"
+        out: "internal/pkg/url_shortener/repository"
+        sql_package: "pgx/v5"

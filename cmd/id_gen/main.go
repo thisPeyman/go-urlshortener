@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"net"
 
 	"github.com/thisPeyman/go-urlshortner/api"
@@ -32,7 +31,7 @@ func StartGrpcServer(lc fx.Lifecycle, server *grpc.Server, log *zap.Logger) {
 			if err != nil {
 				return err
 			}
-			fmt.Println("🚀 gRPC Server running on port 50052")
+			log.Info("🚀 gRPC Server running on port 50052")
 			go func() {
 				if err := server.Serve(listener); err != nil {
 					log.Fatal("Failed to serve", zap.Error(err))

@@ -1,0 +1,25 @@
+syntax = "proto3";
+
+package api;
+option go_package = "github.com/thisPeyman/go-urlshortner/api";
+
+service ShortenerService {
+    rpc ShortenUrl (ShortenURLRequest) returns (ShortenURLResponse);
+    rpc ExpandURL (ExpandURLRequest) returns (ExpandURLResponse);
+}
+
+message ShortenURLRequest {
+  string long_url = 1;
+}
+
+message ShortenURLResponse {
+  string short_url = 1;
+}
+
+message ExpandURLRequest {
+  string short_url = 1;
+}
+
+message ExpandURLResponse {
+  string long_url = 1;
+}

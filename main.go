@@ -6,18 +6,20 @@ import (
 
 	"github.com/thisPeyman/go-urlshortner/api"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 func main() {
-	conn, err := grpc.Dial("localhost:50052", grpc.WithInsecure())
+
+	conn, err := grpc.NewClient("localhost:50053", grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		panic(err)
 	}
 	defer conn.Close()
 
-	client := api.NewIDGeneratorServiceClient(conn)
+	client := api.NewShortenerServiceClient(conn)
 
-	res, err := client.GenerateID(context.Background(), &api.GenerateIDRequest{})
+	res, err := client.ShortenUrl(context.Background(), &api.ShortenURLRequest{LongUrl: "https://google.com"})
 
 	fmt.Println(res)
 }
