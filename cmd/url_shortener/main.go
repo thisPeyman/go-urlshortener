@@ -5,10 +5,12 @@ import (
 	"net"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/labstack/echo/v4"
 	"github.com/redis/go-redis/v9"
 	"github.com/thisPeyman/go-urlshortner/api"
 	"github.com/thisPeyman/go-urlshortner/internal/pkg/url_shortener/repository"
 	"github.com/thisPeyman/go-urlshortner/internal/shortener"
+	"github.com/thisPeyman/go-urlshortner/pkg/echoext"
 	"go.uber.org/fx"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
@@ -17,6 +19,14 @@ import (
 
 func ProvideGrpcServer() *grpc.Server {
 	return grpc.NewServer()
+}
+
+func ProvideHttpRouter() *echo.Echo {
+	e := echo.New()
+
+	e.Validator = echoext.NewCustomValidator()
+
+	return e
 }
 
 func ProvideRedisClient() *redis.Client {
@@ -46,7 +56,7 @@ func ProvideRepository(conn *pgx.Conn) *repository.Queries {
 	return repository.New(conn)
 }
 
-func RegisterGrpcService(server *grpc.Server, shortenerService *shortener.ShortenerService) {
+func RegisterGrpcServices(server *grpc.Server, shortenerService *shortener.ShortenerService) {
 	api.RegisterShortenerServiceServer(server, shortenerService)
 }
 
@@ -88,6 +98,19 @@ func StartGrpcServer(lc fx.Lifecycle, server *grpc.Server, log *zap.Logger) {
 	})
 }
 
+func StartHttpServer(lc fx.Lifecycle, e *echo.Echo, log *zap.Logger) {
+	lc.Append(fx.Hook{
+		OnStart: func(ctx context.Context) error {
+			go func() {
+				if err := e.Start(":40010"); err != nil {
+					log.Fatal("Failed to serve", zap.Error(err))
+				}
+			}()
+			return nil
+		},
+	})
+}
+
 func main() {
 	app := fx.New(
 		// fx.WithLogger(func(log *zap.Logger) fxevent.Logger {
@@ -101,10 +124,13 @@ func main() {
 			ProvideIDGeneratorService,
 			ProvideDatabase,
 			ProvideRepository,
+			ProvideHttpRouter,
 		),
 		fx.Invoke(
-			RegisterGrpcService,
+			RegisterGrpcServices,
+			shortener.RegisterController,
 			StartGrpcServer,
+			StartHttpServer,
 		),
 	)
 

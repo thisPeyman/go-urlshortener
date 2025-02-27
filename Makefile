@@ -9,9 +9,6 @@ PROTOC := protoc
 PROTOC_GEN_GO := $(shell go env GOPATH)/bin/protoc-gen-go
 PROTOC_GEN_GO_GRPC := $(shell go env GOPATH)/bin/protoc-gen-go-grpc
 
-# Ports
-ID_GEN_PORT := 50052
-
 # Check if protoc-gen-go and protoc-gen-go-grpc are installed
 check-protoc-tools:
 	@if ! [ -x "$(PROTOC_GEN_GO)" ]; then \
@@ -41,9 +38,9 @@ build: tidy
 	@echo "✅ Built: bin/$(SERVICE)"
 
 # Run the service
-run: build
-	@echo "🚀 Running $(SERVICE) on port $(ID_GEN_PORT)..."
-	@./bin/$(SERVICE)
+run:
+	@echo "🚀 Running $(filter-out $@,$(MAKECMDGOALS))..."
+	@go run cmd/$(filter-out $@,$(MAKECMDGOALS))/main.go
 
 # Clean generated files
 clean:
