@@ -1,0 +1,5 @@
+db:
+  postgres_dsn: "host=localhost port=5430 user=postgres password=postgres dbname=postgres sslmode=disable"
+
+redis:
+  address: "localhost:6370"

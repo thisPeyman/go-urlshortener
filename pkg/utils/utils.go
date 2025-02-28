@@ -1,7 +1,10 @@
 package utils
 
 import (
+	"context"
 	"strings"
+
+	"github.com/spf13/viper"
 )
 
 const base62Chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
@@ -40,4 +43,26 @@ func DecodeFromBase62(encoded string) int64 {
 	}
 
 	return num
+}
+
+func LoadConfig(serviceName string, config any) error {
+	viper.SetConfigName(serviceName)
+	viper.SetConfigType("yaml")
+	viper.AddConfigPath("configs/")
+
+	if err := viper.ReadInConfig(); err != nil {
+		return err
+	}
+
+	viper.AutomaticEnv()
+
+	if err := viper.Unmarshal(config); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func ProvideBackgroundContext() context.Context {
+	return context.Background()
 }

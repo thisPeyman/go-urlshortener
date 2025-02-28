@@ -6,16 +6,36 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/labstack/echo/v4"
-	"github.com/redis/go-redis/v9"
 	"github.com/thisPeyman/go-urlshortner/api"
 	"github.com/thisPeyman/go-urlshortner/internal/pkg/url_shortener/repository"
 	"github.com/thisPeyman/go-urlshortner/internal/shortener"
+	"github.com/thisPeyman/go-urlshortner/pkg/dbext"
 	"github.com/thisPeyman/go-urlshortner/pkg/echoext"
+	"github.com/thisPeyman/go-urlshortner/pkg/redisext"
+	"github.com/thisPeyman/go-urlshortner/pkg/utils"
 	"go.uber.org/fx"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
+
+const (
+	packageName = "url_shortener"
+)
+
+type Config struct {
+	dbext.DBConfig       `mapstructure:"db"`
+	redisext.RedisConfig `mapstructure:"redis"`
+}
+
+func ProvideConfig() (*Config, error) {
+	cfg := new(Config)
+	if err := utils.LoadConfig(packageName, cfg); err != nil {
+		return nil, err
+	}
+
+	return cfg, nil
+}
 
 func ProvideGrpcServer() *grpc.Server {
 	return grpc.NewServer()
@@ -27,29 +47,6 @@ func ProvideHttpRouter() *echo.Echo {
 	e.Validator = echoext.NewCustomValidator()
 
 	return e
-}
-
-func ProvideRedisClient() *redis.Client {
-	return redis.NewClient(&redis.Options{
-		Addr:     "localhost:6370",
-		Password: "",
-		DB:       0,
-	})
-}
-
-func ProvideDatabase(lc fx.Lifecycle) (*pgx.Conn, error) {
-	conn, err := pgx.Connect(context.Background(), "host=localhost port=5430 user=postgres password=postgres dbname=postgres sslmode=disable")
-	if err != nil {
-		return nil, err
-	}
-
-	lc.Append(fx.Hook{
-		OnStop: func(ctx context.Context) error {
-			return conn.Close(ctx)
-		},
-	})
-
-	return conn, nil
 }
 
 func ProvideRepository(conn *pgx.Conn) *repository.Queries {
@@ -117,12 +114,18 @@ func main() {
 		// 	return &fxevent.ZapLogger{Logger: log}
 		// }),
 		fx.Provide(
+			utils.ProvideBackgroundContext,
+			fx.Annotate(
+				ProvideConfig,
+				fx.As(new(dbext.DBConfigGetter)),
+				fx.As(new(redisext.RedisConfigGetter)),
+			),
 			ProvideGrpcServer,
 			shortener.NewShortenerService,
 			zap.NewExample,
-			ProvideRedisClient,
+			redisext.ProvideRedisClient,
 			ProvideIDGeneratorService,
-			ProvideDatabase,
+			dbext.ProvideDatabase,
 			ProvideRepository,
 			ProvideHttpRouter,
 		),
