@@ -12,6 +12,7 @@ import (
 	"github.com/thisPeyman/go-urlshortner/pkg/dbext"
 	"github.com/thisPeyman/go-urlshortner/pkg/echoext"
 	"github.com/thisPeyman/go-urlshortner/pkg/redisext"
+	"github.com/thisPeyman/go-urlshortner/pkg/sentryext"
 	"github.com/thisPeyman/go-urlshortner/pkg/utils"
 	"go.uber.org/fx"
 	"go.uber.org/zap"
@@ -41,12 +42,14 @@ func ProvideGrpcServer() *grpc.Server {
 	return grpc.NewServer()
 }
 
-func ProvideHttpRouter() *echo.Echo {
-	e := echo.New()
+func ProvideLogger() (*zap.Logger, error) {
+	logger, err := zap.NewDevelopment()
 
-	e.Validator = echoext.NewCustomValidator()
+	if err != nil {
+		return nil, err
+	}
 
-	return e
+	return logger, nil
 }
 
 func ProvideRepository(conn *pgx.Conn) *repository.Queries {
@@ -113,6 +116,7 @@ func main() {
 		// fx.WithLogger(func(log *zap.Logger) fxevent.Logger {
 		// 	return &fxevent.ZapLogger{Logger: log}
 		// }),
+		sentryext.SentryModule,
 		fx.Provide(
 			utils.ProvideBackgroundContext,
 			fx.Annotate(
@@ -122,12 +126,12 @@ func main() {
 			),
 			ProvideGrpcServer,
 			shortener.NewShortenerService,
-			zap.NewExample,
+			ProvideLogger,
 			redisext.ProvideRedisClient,
 			ProvideIDGeneratorService,
 			dbext.ProvideDatabase,
 			ProvideRepository,
-			ProvideHttpRouter,
+			echoext.ProvideHttpRouter,
 		),
 		fx.Invoke(
 			RegisterGrpcServices,

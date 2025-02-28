@@ -3,6 +3,7 @@ package shortener
 import (
 	"net/http"
 
+	sentryecho "github.com/getsentry/sentry-go/echo"
 	"github.com/labstack/echo/v4"
 	"github.com/thisPeyman/go-urlshortner/api"
 )
@@ -25,6 +26,7 @@ func RegisterController(e *echo.Echo, shortenerService *ShortenerService) {
 }
 
 func (c *ShortenerController) ShortenUrl(e echo.Context) error {
+
 	var data ShortenUrlRequest
 	if err := e.Bind(&data); err != nil {
 		return err
@@ -35,6 +37,9 @@ func (c *ShortenerController) ShortenUrl(e echo.Context) error {
 
 	res, err := c.shortenerService.ShortenUrl(e.Request().Context(), &api.ShortenURLRequest{LongUrl: data.LongUrl})
 	if err != nil {
+		if hub := sentryecho.GetHubFromContext(e); hub != nil {
+			hub.CaptureException(err)
+		}
 		return err
 	}
 
